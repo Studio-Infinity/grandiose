@@ -1,5 +1,5 @@
 {
-  "name": "grandiose",
+  "name": "@studio-infinity/grandiose",
   "version": "0.1.0",
   "description": "Node.JS native bindings to the Newtek NDI SDK.",
   "main": "index.js",
