@@ -1,20 +1,6 @@
-/* Copyright 2018 Streampunk Media Ltd.
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
-
 #include <cstddef>
 #include <Processing.NDI.Lib.h>
+#include <cstdio>
 
 #ifdef _WIN32
 #ifdef _WIN64
@@ -31,9 +17,7 @@ napi_value videoSend(napi_env env, napi_callback_info info);
 
 void sendExecute(napi_env env, void* data) {
   sendCarrier* c = (sendCarrier *) data;
-
   NDIlib_send_create_t NDI_send_create_desc;
-
   NDI_send_create_desc.p_ndi_name = c->name;
   NDI_send_create_desc.p_groups = c->groups;
   NDI_send_create_desc.clock_video = c->clockVideo;
@@ -73,34 +57,12 @@ void sendComplete(napi_env env, napi_status asyncStatus, void* data) {
   REJECT_STATUS;
 
   napi_value videoFn;
-  c->status = napi_create_function(env, "video", NAPI_AUTO_LENGTH, videoSend,
-    nullptr, &videoFn);
+  c->status = napi_create_function(env, "video", NAPI_AUTO_LENGTH, videoSend, nullptr, &videoFn);
   REJECT_STATUS;
   c->status = napi_set_named_property(env, result, "video", videoFn);
   REJECT_STATUS;
 
-  // napi_value audioFn;
-  // c->status = napi_create_function(env, "audio", NAPI_AUTO_LENGTH, audioSend,
-  //   nullptr, &audioFn);
-  // REJECT_STATUS;
-  // c->status = napi_set_named_property(env, result, "audio", audioFn);
-  // REJECT_STATUS;
-
-  // napi_value metadataFn;
-  // c->status = napi_create_function(env, "metadata", NAPI_AUTO_LENGTH, metadataReceive,
-  //   nullptr, &metadataFn);
-  // REJECT_STATUS;
-  // c->status = napi_set_named_property(env, result, "metadata", metadataFn);
-  // REJECT_STATUS;
-
-  // napi_value dataFn;
-  // c->status = napi_create_function(env, "data", NAPI_AUTO_LENGTH, dataReceive,
-  //   nullptr, &dataFn);
-  // REJECT_STATUS;
-  // c->status = napi_set_named_property(env, result, "data", dataFn);
-  // REJECT_STATUS;
-
-  napi_value name, groups, clockVideo, clockAudio;
+  napi_value name, clockVideo, clockAudio;
   c->status = napi_create_string_utf8(env, c->name, NAPI_AUTO_LENGTH, &name);
   REJECT_STATUS;
   c->status = napi_set_named_property(env, result, "name", name);
@@ -124,97 +86,77 @@ void sendComplete(napi_env env, napi_status asyncStatus, void* data) {
 }
 
 napi_value send(napi_env env, napi_callback_info info) {
-  napi_valuetype type;
-  sendCarrier* c = new sendCarrier;
-
-  napi_value promise;
-  c->status = napi_create_promise(env, &c->_deferred, &promise);
-  REJECT_RETURN;
-
-  size_t argc = 1;
-  napi_value args[1];
-  c->status = napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
-  REJECT_RETURN;
-
-  if (argc != (size_t) 1) REJECT_ERROR_RETURN(
-    "Sender must be created with an object containing at least a 'name' property.",
-    GRANDIOSE_INVALID_ARGS);
-  
-  c->status = napi_typeof(env, args[0], &type);
-  REJECT_RETURN;
-  bool isArray;
-  c->status = napi_is_array(env, args[0], &isArray);
-  REJECT_RETURN;
-  if ((type != napi_object) || isArray) REJECT_ERROR_RETURN(
-    "Single argument must be an object, not an array, containing at least a 'name' property.",
-    GRANDIOSE_INVALID_ARGS);
-
-  napi_value config = args[0];
-  napi_value name, groups, clockVideo, clockAudio;
-
-  c->status = napi_get_named_property(env, config, "name", &name);
-  REJECT_RETURN;
-  c->status = napi_typeof(env, name, &type);
-  REJECT_RETURN;
-  if (type != napi_string) REJECT_ERROR_RETURN(
-    "Name property must be of type string.",
-    GRANDIOSE_INVALID_ARGS);
-  size_t namel;
-  c->status = napi_get_value_string_utf8(env, name, nullptr, 0, &namel);
-  REJECT_RETURN;
-  c->name = (char *) malloc(namel + 1);
-  c->status = napi_get_value_string_utf8(env, name, c->name, namel + 1, &namel);
-  REJECT_RETURN;
-  
-  // c->status = napi_get_named_property(env, config, "groups", &groups);
-  // REJECT_RETURN;
-  // c->status = napi_typeof(env, groups, &type);
-  // REJECT_RETURN;
-  
-  // if (type != napi_undefined && type != napi_string) REJECT_ERROR_RETURN(
-  //   "Groups must be of type string or ....",
-  //   GRANDIOSE_INVALID_ARGS);
-
-  c->status = napi_get_named_property(env, config, "clockVideo", &clockVideo);
-  REJECT_RETURN;
-  c->status = napi_typeof(env, clockVideo, &type);
-  REJECT_RETURN;
-  if (type != napi_undefined) {
-    if (type != napi_boolean) REJECT_ERROR_RETURN(
-      "ClockVideo property must be of type boolean.",
-      GRANDIOSE_INVALID_ARGS);
-    c->status = napi_get_value_bool(env, clockVideo, &c->clockVideo);
+    napi_valuetype type;
+    sendCarrier* c = new sendCarrier;
+    napi_value promise;
+    c->status = napi_create_promise(env, &c->_deferred, &promise);
     REJECT_RETURN;
-  }
-
-  c->status = napi_get_named_property(env, config, "clockAudio", &clockAudio);
-  REJECT_RETURN;
-  c->status = napi_typeof(env, clockAudio, &type);
-  REJECT_RETURN;
-  if (type != napi_undefined) {
-    if (type != napi_boolean) REJECT_ERROR_RETURN(
-      "ClockAudio property must be of type boolean.",
-      GRANDIOSE_INVALID_ARGS);
-    c->status = napi_get_value_bool(env, clockAudio, &c->clockAudio);
+    size_t argc = 1;
+    napi_value args[1];
+    c->status = napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     REJECT_RETURN;
-  }
-  
-  napi_value resource_name;
-  c->status = napi_create_string_utf8(env, "Send", NAPI_AUTO_LENGTH, &resource_name);
-  REJECT_RETURN;
-  c->status = napi_create_async_work(env, NULL, resource_name, sendExecute,
-    sendComplete, c, &c->_request);
-  REJECT_RETURN;
-  c->status = napi_queue_async_work(env, c->_request);
-  REJECT_RETURN;
-
-  return promise;
+    if (argc != (size_t) 1) REJECT_ERROR_RETURN(
+        "Sender must be created with an object containing at least a 'name' property.",
+        GRANDIOSE_INVALID_ARGS);
+    
+    c->status = napi_typeof(env, args[0], &type);
+    REJECT_RETURN;
+    bool isArray;
+    c->status = napi_is_array(env, args[0], &isArray);
+    REJECT_RETURN;
+    if ((type != napi_object) || isArray) REJECT_ERROR_RETURN(
+        "Single argument must be an object, not an array, containing at least a 'name' property.",
+        GRANDIOSE_INVALID_ARGS);
+    napi_value config = args[0];
+    napi_value name, clockVideo, clockAudio;
+    c->status = napi_get_named_property(env, config, "name", &name);
+    REJECT_RETURN;
+    c->status = napi_typeof(env, name, &type);
+    REJECT_RETURN;
+    if (type != napi_string) REJECT_ERROR_RETURN(
+        "Name property must be of type string.",
+        GRANDIOSE_INVALID_ARGS);
+    size_t namel;
+    c->status = napi_get_value_string_utf8(env, name, nullptr, 0, &namel);
+    REJECT_RETURN;
+    c->name = (char *) malloc(namel + 1);
+    c->status = napi_get_value_string_utf8(env, name, c->name, namel + 1, &namel);
+    REJECT_RETURN;
+    c->status = napi_get_named_property(env, config, "clockVideo", &clockVideo);
+    REJECT_RETURN;
+    c->status = napi_typeof(env, clockVideo, &type);
+    REJECT_RETURN;
+    if (type != napi_undefined) {
+        if (type != napi_boolean) REJECT_ERROR_RETURN(
+            "ClockVideo property must be of type boolean.",
+            GRANDIOSE_INVALID_ARGS);
+        c->status = napi_get_value_bool(env, clockVideo, &c->clockVideo);
+        REJECT_RETURN;
+    }
+    c->status = napi_get_named_property(env, config, "clockAudio", &clockAudio);
+    REJECT_RETURN;
+    c->status = napi_typeof(env, clockAudio, &type);
+    REJECT_RETURN;
+    if (type != napi_undefined) {
+        if (type != napi_boolean) REJECT_ERROR_RETURN(
+            "ClockAudio property must be of type boolean.",
+            GRANDIOSE_INVALID_ARGS);
+        c->status = napi_get_value_bool(env, clockAudio, &c->clockAudio);
+        REJECT_RETURN;
+    }
+    
+    napi_value resource_name;
+    c->status = napi_create_string_utf8(env, "Send", NAPI_AUTO_LENGTH, &resource_name);
+    REJECT_RETURN;
+    c->status = napi_create_async_work(env, NULL, resource_name, sendExecute, sendComplete, c, &c->_request);
+    REJECT_RETURN;
+    c->status = napi_queue_async_work(env, c->_request);
+    REJECT_RETURN;
+    return promise;
 }
-
 
 void videoSendExecute(napi_env env, void* data) {
   sendDataCarrier* c = (sendDataCarrier*) data;
-
   NDIlib_send_send_video_v2(c->send, &c->videoFrame);
 }
 
@@ -284,7 +226,7 @@ napi_value videoSend(napi_env env, napi_callback_info info) {
     c->status = napi_typeof(env, param, &type);
     REJECT_RETURN;
     if (type != napi_number) REJECT_ERROR_RETURN(
-      "yres value must be a number",
+      "xres value must be a number",
       GRANDIOSE_INVALID_ARGS);
     c->status = napi_get_value_int32(env, param, &c->videoFrame.xres);
     REJECT_RETURN;
@@ -374,8 +316,8 @@ napi_value videoSend(napi_env env, napi_callback_info info) {
     REJECT_RETURN;
     // TODO: check length
 
-
     c->status = napi_get_named_property(env, config, "fourCC", &param);
+
     REJECT_RETURN;
     c->status = napi_typeof(env, param, &type);
     REJECT_RETURN;
@@ -386,7 +328,7 @@ napi_value videoSend(napi_env env, napi_callback_info info) {
     c->status = napi_get_value_int32(env, param, &fourCC);
     REJECT_RETURN;
     // TODO: checks
-    c->videoFrame.FourCC = (NDIlib_FourCC_video_type_e) fourCC; // TODO
+    c->videoFrame.FourCC = (NDIlib_FourCC_video_type_e) fourCC;
 
   } else REJECT_ERROR_RETURN(
       "frame not provided",
@@ -395,8 +337,7 @@ napi_value videoSend(napi_env env, napi_callback_info info) {
   napi_value resource_name;
   c->status = napi_create_string_utf8(env, "VideoSend", NAPI_AUTO_LENGTH, &resource_name);
   REJECT_RETURN;
-  c->status = napi_create_async_work(env, NULL, resource_name, videoSendExecute,
-    videoSendComplete, c, &c->_request);
+  c->status = napi_create_async_work(env, NULL, resource_name, videoSendExecute, videoSendComplete, c, &c->_request);
   REJECT_RETURN;
   c->status = napi_queue_async_work(env, c->_request);
   REJECT_RETURN;

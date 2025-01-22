@@ -1,0 +1,42 @@
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Video Stream</title>
+    <style>
+      #canvas {
+        width: 840px; /* 表示サイズを小さくする */
+        height: 525px; /* 表示サイズを小さくする */
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const ws = new WebSocket("ws://localhost:8000");
+
+      ws.binaryType = "arraybuffer";
+
+      ws.onmessage = (event) => {
+        const data = new Uint8Array(event.data);
+        const width = 3360; // 受信データの幅
+        const height = 2100; // 受信データの高さ
+        canvas.width = width;
+        canvas.height = height;
+
+        const imageData = ctx.createImageData(width, height);
+        const rgbaData = imageData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          rgbaData[i] = data[i]; // R
+          rgbaData[i + 1] = data[i + 1]; // G
+          rgbaData[i + 2] = data[i + 2]; // B
+          rgbaData[i + 3] = 255; // A
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      };
+    </script>
+  </body>
+</html>
