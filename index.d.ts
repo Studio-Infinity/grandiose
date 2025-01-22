@@ -12,16 +12,16 @@ export interface AudioFrame {
 }
 
 export interface VideoFrame {
-  type: 'video'
+  // type: 'video'
   xres: number
   yres: number
   frameRateN: number
   frameRateD: number
   fourCC: FourCC
   pictureAspectRatio: number
-  timestamp: [ number, number ] // PTP timestamp
+  // timestamp: [ number, number ] // PTP timestamp
   frameFormatType: FrameType
-  timecode: [ number, number ] // Measured in nanoseconds
+  // timecode: [ number, number ] // Measured in nanoseconds
   lineStrideBytes: number
   data: Buffer
 }
