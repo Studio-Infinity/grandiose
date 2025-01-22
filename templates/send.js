@@ -1,4 +1,4 @@
-const grandiose = require("./build/Release/grandiose.node");
+const grandiose = require("../build/Release/grandiose.node");
 const fs = require("fs");
 const { createCanvas, loadImage } = require("canvas");
 

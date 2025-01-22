@@ -133,7 +133,7 @@ export function send(params: {
   groups?: string | string[]
   clockVideo?: boolean
   clockAudio?: boolean
-}): Sender
+}): Promise<Sender>
 
 /** @deprecated use GrandioseFinder instead */
 export function find(params: GrandioseFinderOptions, waitMs?: number): Promise<Array<Source>>
